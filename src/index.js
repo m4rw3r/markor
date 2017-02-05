@@ -8,11 +8,12 @@ function resolve(obj: mixed, path: Path, def?: mixed): mixed {
   let o = obj;
 
   while(p.length) {
-    if(typeof o !== "object" || o === null || !Array.isArray(o)) {
+    if(typeof o !== "object" && !Array.isArray(o) || o === null) {
+      // TODO: We probably want to throw here instead when path cannot be resolved
       break;
     }
 
-    o = o[p.pop()];
+    o = o[(p.shift(): any)];
   }
 
   return o !== undefined ? o : def;
@@ -57,28 +58,28 @@ export class Atom<T> {
   subscribe(observerOrNext: ((t: T) => void) & Observer<T, void, void>): Subscription {
     let o: Observer<T, void, void> = typeof observerOrNext === "function" ? {
       next: observerOrNext
-    }: observerOrNext;
+    } : observerOrNext;
 
-    const self = this;
-    const s    =  {
+    const self         = this;
+    const subscription = {
       closed:      false,
       unsubscribe: function unsubscribe() {
         let i = self._observers.indexOf(o);
         if(i !== -1) {
           self._observers.splice(i, 1);
 
-          s.closed = true;
+          subscription.closed = true;
         }
       }
     };
 
     if(o.start) {
-      o.start(s);
+      o.start(subscription);
     }
 
     this._observers.push(o);
 
-    return s;
+    return subscription;
   }
 }
 
@@ -101,7 +102,7 @@ export class Cursor<T> {
 
     return false;
   }
-  get(key: Key): mixed {
+  get(key: Key): Cursor<T> {
     let v = this.deref();
 
     if(typeof v === "object" && v !== null && key in v) {
@@ -111,24 +112,26 @@ export class Cursor<T> {
       return new Cursor(this._atom, this._path.concat([key]));
     }
 
-    throw new Error("Cannot read property of value at path: [" + this._path.join(", ") + "]");
+    throw new Error("Cannot read property at path: [" + this._path.concat([key]).join(", ") + "]");
   }
   set(key: $Keys<T>): Cursor<T> {
     // FIXME
     return this;
   }
   swap(value: mixed): mixed {
-    let path = self._path.slice(0);
+    let path = this._path.slice(0);
     let old  = this.deref();
 
     while(path.length) {
       let segment = path.pop();
       let parent  = resolve(this._atom.deref(), path);
 
-      value   = Object.assign({}, parent, { [segment]: value });
+      // FIXME: Inherit prototype and so on too?
+      value = Object.assign({}, parent, { [segment]: value });
     }
 
-    self._atom.swap(value);
+    // TODO: We will probably have to remove the T bound on Atom
+    this._atom.swap((value: any));
 
     return old;
   }
