@@ -2,7 +2,7 @@ BIN ?= $(shell npm bin)
 
 .PHONY: test
 test:
-	$(BIN)/tap -Rspec tests/*.js
+	$(BIN)/tap -Rspec tests/*.test.js
 
 .PHONY: flow
 flow:
