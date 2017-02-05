@@ -2,9 +2,9 @@
   "name": "jscursors",
   "version": "0.1.0",
   "scripts": {
-    "test":  "tap -Rspec tests/*.test.js",
+    "test": "tap -Rspec tests/*.test.js",
     "watch": "nodemon -w src -w tests --exec 'npm run flow --silent && npm run test --silent'",
-    "flow":  "flow check .; test $? -eq 0 -o $? -eq 2"
+    "flow": "flow check .; test $? -eq 0 -o $? -eq 2"
   },
   "main": "src/index.js",
   "devDependencies": {
@@ -35,5 +35,6 @@
         }
       ]
     ]
-  }
+  },
+  "dependencies": {}
 }

@@ -72,9 +72,11 @@ describe("Cursor({ a: { b: 42, c: 'lol' }})", () => {
       should(d).be.instanceof(Cursor);
     });
 
-    it("should .deref() to the nested exact value", () => {
-      should.deepEqual(d.deref(), { b: 42, c: "lol" });
-      should.strictEqual(d.deref(), o.a);
+    context("deref()", () => {
+      it("should return the nested exact value", () => {
+        should.deepEqual(d.deref(), { b: 42, c: "lol" });
+        should.strictEqual(d.deref(), o.a);
+      });
     });
 
     context("swap()", () => {
@@ -91,6 +93,10 @@ describe("Cursor({ a: { b: 42, c: 'lol' }})", () => {
 
       it("original atom should now contain the new nested value", () => {
         should.deepEqual(a.deref(), { a: "test", d: ["e", "f", "g"] });
+      });
+
+      it("original value should still be the same", () => {
+        should.deepEqual(o, { a: { b: 42, c: "lol" }, d: ["e", "f", "g"] });
       });
     });
   });

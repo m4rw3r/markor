@@ -3,6 +3,10 @@
 export type Key  = string|number;
 export type Path = Key[];
 
+// TODO: How to diff two cursors (or the same) to the same atom when the atom has changed? Maybe just store a ref to the last deref() use? The stored deref() use should be stored outside of the Cursor, otherwise we will probably have a memory leak.
+// TODO: Test with preact
+// TODO: Pluggable functions for different datatypes? (eg. support for ImmutableJS)
+
 function resolve(obj: mixed, path: Path, def?: mixed): mixed {
   let p = path.slice(0);
   let o = obj;
@@ -37,6 +41,11 @@ export class Atom<T> {
     return this._value;
   }
 
+  update(f: (t: T) => T): T {
+    return this.swap(f(this.deref()));
+  }
+
+  // TODO: Maybe implement as compare-and-swap + apply function?
   swap(v: T): T {
     let old = this._value;
 
@@ -117,6 +126,9 @@ export class Cursor<T> {
   set(key: $Keys<T>): Cursor<T> {
     // FIXME
     return this;
+  }
+  update(f: (t: mixed) => mixed): mixed {
+    return this.swap(f(this.deref()));
   }
   swap(value: mixed): mixed {
     let path = this._path.slice(0);
