@@ -7,17 +7,23 @@ export type Path = Key[];
 // TODO: Test with preact
 // TODO: Pluggable functions for different datatypes? (eg. support for ImmutableJS)
 
+export interface Container<T> {
+  cursor(): Cursor<T>;
+  get<U: T & Object, K: $Keys<U>>(k: K): Cursor<*>;
+  swap(v: T): T;
+  deref(def?: T): mixed;
+}
+
 function resolve(obj: mixed, path: Path, def?: mixed): mixed {
-  let p = path.slice(0);
   let o = obj;
 
-  while(p.length) {
+  for(let i = 0; i < path.length; i++) {
     if(typeof o !== "object" && !Array.isArray(o) || o === null) {
       // TODO: We probably want to throw here instead when path cannot be resolved
       break;
     }
 
-    o = o[(p.shift(): any)];
+    o = o[(path[i]: any)];
   }
 
   return o !== undefined ? o : def;
@@ -28,6 +34,7 @@ export class Atom<T> {
   _observers: Observer<T, void, void>[];
   constructor(value: T, observers: Observer<T, void, void>[] = []) {
     (this: Observable<T, void, void>);
+    (this: Container<T>);
 
     this._value     = value;
     this._observers = observers;
@@ -35,6 +42,10 @@ export class Atom<T> {
 
   cursor(): Cursor<T> {
     return new Cursor(this);
+  }
+
+  get<U: T & Object, K: $Keys<U>>(k: K): Cursor<*> {
+    return this.cursor().get(k);
   }
 
   deref(): T {
@@ -94,8 +105,10 @@ export class Atom<T> {
 
 export class Cursor<T> {
   _path: Path;
-  _atom: Atom<T>;
-  constructor(atom: Atom<T>, path: Path = []) {
+  _atom: Atom<*>;
+  constructor(atom: Atom<*>, path: Path = []) {
+    (this: Container<T>);
+
     this._atom = atom;
     this._path = path;
   }
@@ -111,7 +124,7 @@ export class Cursor<T> {
 
     return false;
   }
-  get(key: Key): Cursor<T> {
+  get<U: T & Object, K: $Keys<U>>(key: K): Cursor<*> {
     let v = this.deref();
 
     if(typeof v === "object" && v !== null && key in v) {
@@ -123,14 +136,15 @@ export class Cursor<T> {
 
     throw new Error("Cannot read property at path: [" + this._path.concat([key]).join(", ") + "]");
   }
-  set(key: $Keys<T>): Cursor<T> {
+  set<K: $Keys<T>>(key: K): Cursor<T> {
     // FIXME
     return this;
   }
-  update(f: (t: mixed) => mixed): mixed {
+  update(f: (t: T) => T): T {
     return this.swap(f(this.deref()));
   }
-  swap(value: mixed): mixed {
+  swap(value: T): T {
+    let data = value;
     let path = this._path.slice(0);
     let old  = this.deref();
 
@@ -139,16 +153,16 @@ export class Cursor<T> {
       let parent  = resolve(this._atom.deref(), path);
 
       // FIXME: Inherit prototype and so on too?
-      value = Object.assign({}, parent, { [segment]: value });
+      data = Object.assign({}, parent, { [segment]: data });
     }
 
     // TODO: We will probably have to remove the T bound on Atom
-    this._atom.swap((value: any));
+    this._atom.swap((data: any));
 
     return old;
   }
-  deref(def?: mixed): mixed {
-    return resolve(this._atom.deref(), this._path, def);
+  deref(def?: T): T {
+    return (resolve(this._atom.deref(), this._path, def): any);
   }
   cursor(): Cursor<T> {
     return new Cursor(this._atom, this._path);
