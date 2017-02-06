@@ -128,6 +128,22 @@ describe("Cursor({ a: { b: 42, c: 'lol' }})", () => {
     });
   });
 
+  context("get('b', null)", () => {
+    var a = new Atom(o);
+    var c = a.cursor();
+    var d = c.get("b", null);
+
+    it("should return a Cursor", () => {
+      should(d).be.instanceof(Cursor);
+    });
+
+    context("deref()", () => {
+      it("should return the nested default exact value", () => {
+        should.equal(d.deref(), null);
+      });
+    });
+  });
+
   context("get('b', { test: 'foo' })", () => {
     var o2 = { test: 'foo' };
     var a  = new Atom(o);

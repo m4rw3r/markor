@@ -129,7 +129,7 @@ export class Cursor<T> {
   get<U: T & Object, K: $Keys<U>, V>(key: K, def?: V): Cursor<V> {
     let v = this.deref();
 
-    if(def) {
+    if(typeof def !== "undefined") {
       return new Cursor(this._atom, this._path.concat([key]), def);
     }
 
