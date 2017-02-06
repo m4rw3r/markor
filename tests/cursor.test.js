@@ -40,12 +40,14 @@ describe("Cursor({})", () => {
     it("should return the old value", () => {
       should.strictEqual(c.swap("foo"), o);
     });
+
     it("should replace the contained value in Cursor and Atom", () => {
       c.swap("foo");
 
       should.strictEqual(c.deref(), "foo");
       should.strictEqual(a.deref(), "foo");
     });
+
     it("should notify observers on Atom", () => {
       let observed = null;
 
@@ -118,9 +120,107 @@ describe("Cursor({ a: { b: 42, c: 'lol' }})", () => {
   context("get('b')", () => {
     var a = new Atom(o);
     var c = a.cursor();
+
     it("should throw an exception", () => {
       should.throws(() => {
         c.get("b");
+      });
+    });
+  });
+
+  context("get('b', { test: 'foo' })", () => {
+    var o2 = { test: 'foo' };
+    var a  = new Atom(o);
+    var c  = a.cursor();
+    var d  = c.get("b", o2);
+
+    it("should return a Cursor", () => {
+      should(d).be.instanceof(Cursor);
+    });
+
+    context("deref()", () => {
+      it("should return the nested default exact value", () => {
+        should.deepEqual(d.deref(), { test: "foo" });
+        should.strictEqual(d.deref(), o2);
+      });
+    });
+
+    context("swap({})", () => {
+      var o3 = {};
+
+      var obj = d.swap(o3);
+
+      it("should return the old value", () => {
+        should.deepEqual(obj, { test: "foo" });
+        should.strictEqual(obj, o2);
+      });
+
+      it("should .deref() to the new exact value", () => {
+        should.deepEqual(d.deref(), {});
+        should.strictEqual(d.deref(), o3);
+      });
+
+      it("Should have added b: {} to atom", () => {
+        should.deepEqual(a.deref(), { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: {} });
+      });
+
+      it("should notify observers on Atom", () => {
+        let observed = null;
+
+        a.subscribe(v => {
+          observed = v;
+        });
+
+        d.swap("str");
+
+        should.deepEqual(observed, { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: "str" });
+      });
+    });
+  });
+
+  // TODO: What about other properties on the default object?
+  context("get('b', { test: 'foo' }).get('test')", () => {
+    var o2 = { test: 'foo' };
+    var a  = new Atom(o);
+    var c  = a.cursor();
+    var d  = c.get("b", o2);
+    var e  = d.get("test");
+
+    it("should return a Cursor", () => {
+      should(e).be.instanceof(Cursor);
+    });
+
+    context("deref()", () => {
+      it("should return the nested default exact value", () => {
+        should.deepEqual(e.deref(), "foo");
+      });
+    });
+
+    context("swap('baz')", () => {
+      let obj = e.swap("baz");
+
+      it("should return the old value", () => {
+        should.equal(obj, "foo");
+      });
+
+      it("should .deref() to the new exact value", () => {
+        should.equal(e.deref(), "baz");
+      });
+
+      it("Should have added b: { test: 'baz' } to atom", () => {
+        should.deepEqual(a.deref(), { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: { test: 'baz' } });
+      });
+
+      it("should notify observers on Atom", () => {
+        let observed = null;
+
+        a.subscribe(v => {
+          observed = v;
+        });
+
+        e.swap("str");
+
+        should.deepEqual(observed, { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: { test: "str" } });
       });
     });
   });

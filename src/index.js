@@ -41,11 +41,11 @@ export class Atom<T> {
   }
 
   cursor(): Cursor<T> {
-    return new Cursor(this);
+    return new Cursor(this, []);
   }
 
-  get<U: T & Object, K: $Keys<U>>(k: K): Cursor<*> {
-    return this.cursor().get(k);
+  get<U: T & Object, K: $Keys<U>, V>(key: K, def?: V): Cursor<V> {
+    return this.cursor().get(key, def);
   }
 
   deref(): T {
@@ -106,11 +106,13 @@ export class Atom<T> {
 export class Cursor<T> {
   _path: Path;
   _atom: Atom<*>;
-  constructor(atom: Atom<*>, path: Path = []) {
+  _def:  ?T;
+  constructor(atom: Atom<*>, path: Path, def?: any) {
     (this: Container<T>);
 
     this._atom = atom;
     this._path = path;
+    this._def  = def;
   }
   has(key: Key): boolean {
     let v = this.deref();
@@ -124,21 +126,21 @@ export class Cursor<T> {
 
     return false;
   }
-  get<U: T & Object, K: $Keys<U>>(key: K): Cursor<*> {
+  get<U: T & Object, K: $Keys<U>, V>(key: K, def?: V): Cursor<V> {
     let v = this.deref();
 
-    if(typeof v === "object" && v !== null && key in v) {
-      return new Cursor(this._atom, this._path.concat([key]));
+    if(def) {
+      return new Cursor(this._atom, this._path.concat([key]), def);
+    }
+
+    if(typeof v === "object" && v != null && key in v) {
+      return new Cursor(this._atom, this._path.concat([key]), v[key]);
     }
     else if(Array.isArray(v) && v[(key: any)] !== undefined) {
-      return new Cursor(this._atom, this._path.concat([key]));
+      return new Cursor(this._atom, this._path.concat([key]), v[(key: any)]);
     }
 
     throw new Error("Cannot read property at path: [" + this._path.concat([key]).join(", ") + "]");
-  }
-  set<K: $Keys<T>>(key: K): Cursor<T> {
-    // FIXME
-    return this;
   }
   update(f: (t: T) => T): T {
     return this.swap(f(this.deref()));
@@ -148,6 +150,7 @@ export class Cursor<T> {
     let path = this._path.slice(0);
     let old  = this.deref();
 
+    // TODO: For-loop
     while(path.length) {
       let segment = path.pop();
       let parent  = resolve(this._atom.deref(), path);
@@ -161,10 +164,11 @@ export class Cursor<T> {
 
     return old;
   }
-  deref(def?: T): T {
-    return (resolve(this._atom.deref(), this._path, def): any);
+  deref(): T {
+    // FIXME: Proper return value, this._def can be undefined
+    return (resolve(this._atom.deref(), this._path, this._def): any);
   }
   cursor(): Cursor<T> {
-    return new Cursor(this._atom, this._path);
+    return new Cursor(this._atom, this._path, this._def);
   }
 }
