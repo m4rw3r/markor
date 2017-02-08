@@ -26,26 +26,26 @@ describe("Atom(null)", () => {
     });
   });
 
-  describe("swap('str')", () => {
+  describe("swap", () => {
     it("should return null", () => {
-      should.strictEqual(a.swap('str'), null);
+      should.strictEqual(a.swap("foo"), null);
     });
     it("should replace the contained value", () => {
-      a.swap("str");
+      should.strictEqual(a.swap("str"), "foo");
 
       should.strictEqual(a.deref(), "str");
     });
 
-    it("should notify observers with new value", () => {
+    it("should notify observers with new and old value", () => {
       let observed = null;
 
-      a.subscribe(v => {
-        observed = v;
+      a.subscribe(function() {
+        observed = Array.prototype.slice.call(arguments, 0);
       });
 
-      a.swap("str");
+      should.equal(a.swap("baz"), "str");
 
-      should.strictEqual(observed, "str");
+      should.deepEqual(observed, ["baz", "str"]);
     });
   });
 });

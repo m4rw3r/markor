@@ -10,7 +10,7 @@ export type Path = Key[];
 export interface Container<T> {
   cursor(): Cursor<T>;
   get<U: T & Object, K: $Keys<U>>(k: K): Cursor<*>;
-  swap(v: T): T;
+  swap(v: T, ...extraArgs: mixed[]): T;
   deref(def?: T): mixed;
 }
 
@@ -57,7 +57,7 @@ export class Atom<T> {
   }
 
   // TODO: Maybe implement as compare-and-swap + apply function?
-  swap(v: T): T {
+  swap(v: T, ...extraArgs: mixed[]): T {
     let old = this._value;
 
     this._value = v;
@@ -66,7 +66,7 @@ export class Atom<T> {
       let f = this._observers[i].next;
 
       if(typeof f === "function") {
-        f(v);
+        f(v, old, ...extraArgs);
       }
     }
 
@@ -75,7 +75,7 @@ export class Atom<T> {
 
   /* Observable */
 
-  subscribe(observerOrNext: ((t: T) => void) & Observer<T, void, void>): Subscription {
+  subscribe(observerOrNext: ((t: T, o: T) => void) & Observer<T, void, void>): Subscription {
     let o: Observer<T, void, void> = typeof observerOrNext === "function" ? {
       next: observerOrNext
     } : observerOrNext;
@@ -85,6 +85,7 @@ export class Atom<T> {
       closed:      false,
       unsubscribe: function unsubscribe() {
         let i = self._observers.indexOf(o);
+
         if(i !== -1) {
           self._observers.splice(i, 1);
 
@@ -145,7 +146,7 @@ export class Cursor<T> {
   update(f: (t: T) => T): T {
     return this.swap(f(this.deref()));
   }
-  swap(value: T): T {
+  swap(value: T, ...extraArgs: mixed[]): T {
     let data = value;
     let path = this._path.slice(0);
     let old  = this.deref();
@@ -160,7 +161,7 @@ export class Cursor<T> {
     }
 
     // TODO: We will probably have to remove the T bound on Atom
-    this._atom.swap((data: any));
+    this._atom.swap((data: any), this._path, ...extraArgs);
 
     return old;
   }

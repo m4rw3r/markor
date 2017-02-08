@@ -42,22 +42,22 @@ describe("Cursor({})", () => {
     });
 
     it("should replace the contained value in Cursor and Atom", () => {
-      c.swap("foo");
+      should.strictEqual(c.swap("str"), "foo");
 
-      should.strictEqual(c.deref(), "foo");
-      should.strictEqual(a.deref(), "foo");
+      should.strictEqual(c.deref(), "str");
+      should.strictEqual(a.deref(), "str");
     });
 
     it("should notify observers on Atom", () => {
       let observed = null;
 
-      a.subscribe(v => {
-        observed = v;
+      a.subscribe(function() {
+        observed = Array.prototype.slice.call(arguments, 0);
       });
 
-      c.swap("str");
+      should.strictEqual(c.swap("foo"), "str");
 
-      should.strictEqual(observed, "str");
+      should.deepEqual(observed, ["foo", "str", []]);
     });
   });
 });
@@ -182,14 +182,15 @@ describe("Cursor({ a: { b: 42, c: 'lol' }})", () => {
 
       it("should notify observers on Atom", () => {
         let observed = null;
+        let old      = { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: {} };
 
-        a.subscribe(v => {
-          observed = v;
+        a.subscribe(function() {
+          observed = Array.prototype.slice.call(arguments, 0);
         });
 
-        d.swap("str");
+        should.strictEqual(d.swap("str"), o3);
 
-        should.deepEqual(observed, { a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: "str" });
+        should.deepEqual(observed, [{ a: { b: 42, c: "lol" }, d: ["e", "f", "g"], b: "str" }, old, ["b"]]);
       });
     });
   });
